@@ -15,26 +15,26 @@ class SaleOrder(models.Model):
         string="Automatic Workflow",
         ondelete="restrict",
     )
-    all_qty_delivered = fields.Boolean(
-        compute="_compute_all_qty_delivered",
-        string="All quantities delivered",
-        store=True,
-    )
+    # all_qty_delivered = fields.Boolean(
+    #     compute="_compute_all_qty_delivered",
+    #     string="All quantities delivered",
+    #     store=True,
+    # )
 
-    @api.depends("order_line.qty_delivered", "order_line.product_uom_qty")
-    def _compute_all_qty_delivered(self):
-        precision = self.env["decimal.precision"].precision_get(
-            "Product Unit of Measure"
-        )
-        for order in self:
-            order.all_qty_delivered = all(
-                line.product_id.type not in ("product", "consu")
-                or float_compare(
-                    line.qty_delivered, line.product_uom_qty, precision_digits=precision
-                )
-                == 0
-                for line in order.order_line
-            )
+    # @api.depends("order_line.qty_delivered", "order_line.product_uom_qty")
+    # def _compute_all_qty_delivered(self):
+    #     precision = self.env["decimal.precision"].precision_get(
+    #         "Product Unit of Measure"
+    #     )
+    #     for order in self:
+    #         order.all_qty_delivered = all(
+    #             line.product_id.type not in ("product", "consu")
+    #             or float_compare(
+    #                 line.qty_delivered, line.product_uom_qty, precision_digits=precision
+    #             )
+    #             == 0
+    #             for line in order.order_line
+    #         )
 
     def _prepare_invoice(self):
         invoice_vals = super()._prepare_invoice()
@@ -55,8 +55,8 @@ class SaleOrder(models.Model):
         if not self.workflow_process_id:
             return
         workflow = self.workflow_process_id
-        if workflow.picking_policy:
-            self.picking_policy = workflow.picking_policy
+        # if workflow.picking_policy:
+        #     self.picking_policy = workflow.picking_policy
         if workflow.team_id:
             self.team_id = workflow.team_id.id
         if workflow.warning:
