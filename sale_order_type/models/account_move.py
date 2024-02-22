@@ -2,6 +2,7 @@
 # Copyright 2020 Tecnativa - Pedro M. Baeza
 
 from odoo import api, fields, models
+from odoo.exceptions import ValidationError
 
 
 class AccountMove(models.Model):
@@ -53,3 +54,17 @@ class AccountMove(models.Model):
             self.invoice_payment_term_id = self.sale_type_id.payment_term_id.id
         if self.sale_type_id.journal_id:
             self.journal_id = self.sale_type_id.journal_id.id
+
+    # check_company=True don't raises error
+    @api.constrains("company_id", "sale_type_id")
+    def _check_sale_type_company_constrains(self):
+        for inv in self.sudo():
+            sale_type_company = inv.sale_type_id.company_id
+            if sale_type_company and inv.company_id != sale_type_company:
+                raise ValidationError(
+                    _(
+                        "The company of the invoice %s does not match "
+                        "with that of the sale type"
+                    )
+                    % inv.name
+                )
