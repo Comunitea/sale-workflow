@@ -36,7 +36,6 @@ class SaleOrderRecommendationLine(models.TransientModel):
         readonly=True,
         help="To filter secondary uom available",
     )
-    product_uom_readonly = fields.Boolean(related="sale_line_id.product_uom_readonly")
 
     @api.onchange("secondary_uom_id", "secondary_uom_qty")
     def _onchange_secondary_uom(self):
@@ -76,18 +75,17 @@ class SaleOrderRecommendationLine(models.TransientModel):
         ):
             self.secondary_uom_qty = qty
 
-    def _prepare_update_so_line(self, line_form):
-        res = super()._prepare_update_so_line(line_form)
+    def _prepare_update_so_line_vals(self):
+        vals = super()._prepare_update_so_line_vals()
         if self.secondary_uom_id:
-            # Avoid error when product_uom_readonly is True
-            if line_form.secondary_uom_id != self.secondary_uom_id:
-                line_form.secondary_uom_id = self.secondary_uom_id
-            line_form.secondary_uom_qty = self.secondary_uom_qty
-        return res
+            if not self.product_uom_readonly:
+                vals["secondary_uom_id"] = self.secondary_uom_id.id
+            vals["secondary_uom_qty"] = self.secondary_uom_qty
+        return vals
 
-    def _prepare_new_so_line(self, line_form, sequence):
-        res = super()._prepare_new_so_line(line_form, sequence)
+    def _prepare_new_so_line_vals(self, sequence):
+        vals = super()._prepare_new_so_line_vals(sequence)
         if self.secondary_uom_id:
-            line_form.secondary_uom_id = self.secondary_uom_id
-            line_form.secondary_uom_qty = self.secondary_uom_qty
-        return res
+            vals["secondary_uom_id"] = self.secondary_uom_id.id
+            vals["secondary_uom_qty"] = self.secondary_uom_qty
+        return vals

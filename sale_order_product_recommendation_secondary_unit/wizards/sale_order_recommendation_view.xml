@@ -14,7 +14,6 @@
                 position="before"
             >
                 <field name="product_tmpl_id" invisible="1" />
-                <field name="product_uom_readonly" invisible="1" />
                 <field
                     name="secondary_uom_id"
                     domain="[('product_tmpl_id', '=', product_tmpl_id)]"
