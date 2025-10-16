@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
-    <record id="view_sale_promotion_rule_tree" model="ir.ui.view">
+    <record id="view_sale_promotion_rule_list" model="ir.ui.view">
         <field name="model">sale.promotion.rule</field>
         <field name="arch" type="xml">
-            <tree>
+            <list>
                 <field name="sequence" widget="handle" />
                 <field name="name" />
                 <field name="code" />
@@ -13,7 +13,7 @@
                 <field name="is_minimal_amount_tax_incl" />
                 <field name="minimal_amount" />
                 <field name="company_id" groups="base.group_multi_company" />
-            </tree>
+            </list>
         </field>
     </record>
     <record id="view_sale_promotion_rule_form" model="ir.ui.view">
@@ -82,11 +82,11 @@
         <field name="name">Promotion Rule</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">sale.promotion.rule</field>
-        <field name="view_mode">tree,form</field>
+        <field name="view_mode">list,form</field>
         <field
             name="view_ids"
             eval="[(5, 0, 0),
-                (0, 0, {'view_mode': 'tree', 'view_id': ref('view_sale_promotion_rule_tree')}),
+                (0, 0, {'view_mode': 'list', 'view_id': ref('view_sale_promotion_rule_list')}),
                 (0, 0, {'view_mode': 'form', 'view_id': ref('view_sale_promotion_rule_form')})]"
         />
     </record>
