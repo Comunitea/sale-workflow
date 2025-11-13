@@ -108,7 +108,7 @@ according to the strategy
     )
 
     _sql_constraints = [
-        ("code_unique", "UNIQUE (code)", _("Discount code must be unique !"))
+        ("code_unique", "UNIQUE (code)", "Discount code must be unique !")
     ]
 
     def _get_lines_excluded_from_total_amount(self, order):
