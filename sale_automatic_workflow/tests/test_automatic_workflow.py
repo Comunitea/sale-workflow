@@ -137,6 +137,28 @@ class TestAutomaticWorkflow(TestCommon, TestAutomaticWorkflowMixin):
         invoice = sale.invoice_ids
         self.assertEqual(invoice.journal_id.id, new_sale_journal.id)
 
+    def test_filter_domain_with_datetime(self):
+        workflow = self.create_full_automatic()
+        workflow.order_filter_id = self.env["ir.filters"].create(
+            {
+                "name": "Order filter using datetime",
+                "model_id": "sale.order",
+                "domain": (
+                    "[('state', '=', 'draft'), "
+                    "('date_order', '<=', "
+                    "context_today().strftime('%Y-%m-%d %H:%M:%S'))]"
+                ),
+                "user_id": self.env.ref("base.user_root").id,
+            }
+        )
+        sale = self.create_sale_order(workflow)
+        sale.date_order = fields.Datetime.now() + timedelta(days=1)
+        self.run_job()
+        self.assertEqual(sale.state, "draft")
+        sale.date_order = fields.Datetime.now() - timedelta(days=1)
+        self.run_job()
+        self.assertEqual(sale.state, "sale")
+
     def test_no_copy(self):
         workflow = self.create_full_automatic()
         sale = self.create_sale_order(workflow)
@@ -216,3 +238,16 @@ class TestAutomaticWorkflow(TestCommon, TestAutomaticWorkflowMixin):
         )
         self.assertTrue(payment_id)
         self.assertEqual(invoice.currency_id.id, payment_id.currency_id.id)
+        self.assertEqual(invoice.payment_state, invoice._get_invoice_in_payment_state())
+
+    def test_create_payment_with_specified_payment_journal(self):
+        workflow = self.create_full_automatic()
+        workflow.register_payment = True
+        payment_journal = self.env["account.journal"].create(
+            {"name": "Payment Journal Test", "code": "TESTJOURNAL", "type": "bank"}
+        )
+        workflow.property_payment_journal_id = payment_journal
+        self.create_sale_order(workflow)
+        self.run_job()
+        payment = self.env["account.payment"].search([], limit=1, order="id desc")
+        self.assertEqual(payment.journal_id, payment_journal)

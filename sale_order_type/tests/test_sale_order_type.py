@@ -43,8 +43,13 @@ class TestSaleOrderType(BaseCommon):
                 "padding": 3,
             }
         )
+        # Ensure that get sale journal has the same company that environment
         cls.journal = cls.env["account.journal"].search(
-            [("type", "=", "sale")], limit=1
+            [
+                ("company_id", "=", cls.env.company.id),
+                ("type", "=", "sale"),
+            ],
+            limit=1,
         )
         cls.default_sale_type_id = cls.env["sale.order.type"].search([], limit=1)
         cls.default_sale_type_id.sequence_id = False
@@ -59,6 +64,16 @@ class TestSaleOrderType(BaseCommon):
             {"name": "Public Pricelist", "sequence": 1}
         )
         cls.free_carrier = cls.env.ref("account.incoterm_FCA")
+        cls.salesperson = cls.env["res.users"].create(
+            {
+                "name": "Test SOT Salesperson",
+                "login": "test_sot_salesperson",
+                "groups_id": [
+                    (4, cls.env.ref("sales_team.group_sale_salesman").id),
+                ],
+            }
+        )
+        cls.sales_team = cls.env["crm.team"].create({"name": "Test SOT Team"})
         cls.sale_type = cls.sale_type_model.create(
             {
                 "name": "Test Sale Order Type",
@@ -70,6 +85,8 @@ class TestSaleOrderType(BaseCommon):
                 "pricelist_id": cls.sale_pricelist.id,
                 "incoterm_id": cls.free_carrier.id,
                 "quotation_validity_days": 10,
+                "user_id": cls.salesperson.id,
+                "team_id": cls.sales_team.id,
             }
         )
         cls.sale_type_quot = cls.sale_type_model.create(
@@ -161,10 +178,23 @@ class TestSaleOrderType(BaseCommon):
         self.assertEqual(order.payment_term_id, sale_type.payment_term_id)
         self.assertEqual(order.pricelist_id, sale_type.pricelist_id)
         self.assertEqual(order.incoterm, sale_type.incoterm_id)
+        self.assertEqual(order.user_id, sale_type.user_id)
+        self.assertEqual(order.team_id, sale_type.team_id)
         order.action_confirm()
         invoice = order._create_invoices()
         self.assertEqual(invoice.sale_type_id, sale_type)
         self.assertEqual(invoice.journal_id, sale_type.journal_id)
+
+    def test_sale_order_type_user_team_fallback(self):
+        self.assertFalse(self.sale_type_quot.user_id)
+        self.assertFalse(self.sale_type_quot.team_id)
+        partner = self.env["res.partner"].create(
+            {"name": "Partner SOT Quot", "sale_type": self.sale_type_quot.id}
+        )
+        order = self.create_sale_order(partner=partner)
+        self.assertEqual(order.type_id, self.sale_type_quot)
+        self.assertNotEqual(order.user_id, self.salesperson)
+        self.assertNotEqual(order.team_id, self.sales_team)
 
     def test_sale_order_change_partner(self):
         order = self.create_sale_order()
@@ -268,6 +298,26 @@ class TestSaleOrderType(BaseCommon):
         new_partner = self.partner.copy()
         self.assertEqual(self.partner.sale_type, new_partner.sale_type)
 
+    def test_effective_pricelist_id_with_pricelist(self):
+        """effective_pricelist_id resolves to sale_type.pricelist_id when set."""
+        self.partner.sale_type = self.sale_type
+        self.assertEqual(
+            self.partner.effective_pricelist_id, self.sale_type.pricelist_id
+        )
+
+    def test_effective_pricelist_id_without_pricelist(self):
+        """effective_pricelist_id is empty when sale_type has no pricelist set."""
+        sale_type_no_pricelist = self.sale_type_model.create(
+            {"name": "Type without pricelist"}
+        )
+        self.partner.sale_type = sale_type_no_pricelist
+        self.assertFalse(self.partner.effective_pricelist_id)
+
+    def test_effective_pricelist_id_without_sale_type(self):
+        """effective_pricelist_id is empty when the partner has no sale_type."""
+        self.partner.sale_type = False
+        self.assertFalse(self.partner.effective_pricelist_id)
+
     def test_sale_order_type_required(self):
         sale_form = Form(self.env["sale.order"])
         sale_form.partner_id = self.partner
@@ -287,3 +337,52 @@ class TestSaleOrderType(BaseCommon):
             order_line.product_uom_qty = 1.0
         sale_form.type_id = self.sale_type.browse()
         sale_form.save()
+
+    def test_credit_note_preserves_sale_type_from_sale_order(self):
+        """Test credit notes preserve sale order type.
+
+        When creating a credit note (refund) from an invoice that originated
+        from a sale order, the sale_type_id from the sale order should be
+        maintained and not overridden by the partner's default sale type.
+        """
+        # Create a test partner with a specific default sale type
+        test_partner = self.env["res.partner"].create(
+            {
+                "name": "Test Partner",
+                "sale_type": self.sale_type_quot.id,
+            }
+        )
+        # Create and confirm a sale order with a DIFFERENT sale type
+        # than partner's default
+        sale_form = Form(self.env["sale.order"])
+        sale_form.partner_id = test_partner
+        sale_form.type_id = self.sale_type
+        with sale_form.order_line.new() as order_line:
+            order_line.product_id = self.product
+        sale_order = sale_form.save()
+        sale_order.action_confirm()
+        invoice = sale_order._create_invoices()
+        invoice.action_post()
+        # Create a credit note (refund) from the invoice
+        refund_wizard = (
+            self.env["account.move.reversal"]
+            .with_context(active_model="account.move", active_ids=invoice.ids)
+            .create(
+                {
+                    "reason": "Test refund",
+                    "journal_id": invoice.journal_id.id,
+                }
+            )
+        )
+        refund_action = refund_wizard.refund_moves()
+        credit_note = self.env["account.move"].browse(refund_action["res_id"])
+        # CRITICAL ASSERTION: Credit note should preserve the sale order's type,
+        # NOT default to the partner's sale type
+        self.assertEqual(
+            credit_note._origin.sale_type_id,
+            sale_order.type_id,
+            "Credit note should preserve sale type from sale order "
+            f"(expected: {sale_order.type_id.name}), "
+            "not use partner's default sale type "
+            f"(partner has: {sale_order.partner_id.sale_type.name})",
+        )

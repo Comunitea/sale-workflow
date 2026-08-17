@@ -2,6 +2,7 @@
 # Copyright 2023 Tecnativa - Carlos Dauden
 # License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
 from odoo import api, fields, models
+from odoo.tools.misc import str2bool
 
 
 class ProductElaborationMixin(models.AbstractModel):
@@ -12,14 +13,26 @@ class ProductElaborationMixin(models.AbstractModel):
         comodel_name="product.elaboration",
         string="Elaborations",
     )
-    elaboration_note = fields.Char(
-        store=True,
-    )
+    elaboration_note = fields.Char()
     is_elaboration = fields.Boolean(
         store=True,
         compute="_compute_is_elaboration",
         readonly=False,
     )
+
+    @api.onchange("elaboration_ids")
+    def onchange_elaboration_ids(self):
+        """Use onchange method instead of compute because if any other data of any line
+        force a recompute of all lines and the elaboration custom notes are reset.
+        """
+        if not str2bool(
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("sale_elaboration.auto_notes", True)
+        ):
+            return
+        for line in self:
+            line.elaboration_note = ", ".join(line.elaboration_ids.mapped("name"))
 
     @api.depends("product_id")
     def _compute_is_elaboration(self):

@@ -7,15 +7,15 @@ msgstr ""
 "Project-Id-Version: Odoo Server 11.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2024-06-14 06:02+0000\n"
-"PO-Revision-Date: 2024-06-14 08:05+0200\n"
-"Last-Translator: Gelojr <gelo@moduon.team>\n"
+"PO-Revision-Date: 2026-05-10 16:52+0000\n"
+"Last-Translator: Ed-Spain <eduamoros@gmail.com>\n"
 "Language-Team: \n"
 "Language: es\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Poedit 3.0.1\n"
+"X-Generator: Weblate 5.15.2\n"
 
 #. module: sale_elaboration
 #: model:ir.model.fields,field_description:sale_elaboration.field_product_elaboration__active
@@ -24,7 +24,7 @@ msgid "Active"
 msgstr "Activo"
 
 #. module: sale_elaboration
-#: model_terms:ir.ui.view,arch_db:sale_elaboration.view_sales_order_line_filter
+#: model_terms:ir.ui.view,arch_db:sale_elaboration.view_move_search
 msgid "After Date"
 msgstr "Después de"
 
@@ -38,7 +38,7 @@ msgstr "Archivado"
 #. module: sale_elaboration
 #: model:product.elaboration,name:sale_elaboration.product_elaboration_assembly
 msgid "Assembly"
-msgstr ""
+msgstr "Montaje"
 
 #. module: sale_elaboration
 #: model:ir.model.constraint,message:sale_elaboration.constraint_product_elaboration_code_uniq
@@ -93,11 +93,6 @@ msgid "Display Name"
 msgstr "Nombre a mostrar"
 
 #. module: sale_elaboration
-#: model:ir.model.fields,help:sale_elaboration.field_sale_order_line__is_prepared
-msgid "Dummy field to be able to find prepared lines"
-msgstr "Campo ficticio para poder encontrar líneas preparadas"
-
-#. module: sale_elaboration
 #: model:ir.model.fields,field_description:sale_elaboration.field_sale_order_line__elaboration_price_unit
 msgid "Elab. Price"
 msgstr "Precio elab"
@@ -105,7 +100,7 @@ msgstr "Precio elab"
 #. module: sale_elaboration
 #: model:product.template,name:sale_elaboration.product_product_elaboration_product_template
 #: model_terms:ir.ui.view,arch_db:sale_elaboration.elaboration_view_search
-#: model_terms:ir.ui.view,arch_db:sale_elaboration.view_sales_order_line_filter
+#: model_terms:ir.ui.view,arch_db:sale_elaboration.view_move_search
 msgid "Elaboration"
 msgstr "Elaboración"
 
@@ -151,9 +146,17 @@ msgstr "Precio de elaboración:"
 #: model_terms:ir.ui.view,arch_db:sale_elaboration.elaboration_view_form
 #: model_terms:ir.ui.view,arch_db:sale_elaboration.product_elaboration_profile_form_view
 #: model_terms:ir.ui.view,arch_db:sale_elaboration.product_template_form_view
+#: model_terms:ir.ui.view,arch_db:sale_elaboration.sale_order_line_view_form_readonly
 #: model_terms:ir.ui.view,arch_db:sale_elaboration.view_order_form
 msgid "Elaborations"
 msgstr "Elaboraciones"
+
+#. module: sale_elaboration
+#: model:ir.actions.act_window,name:sale_elaboration.stock_move_elaboration_report_action
+#: model:ir.ui.menu,name:sale_elaboration.menu_sale_stock_move_elaboration_report
+#: model:ir.ui.menu,name:sale_elaboration.menu_stock_sale_stock_move_elaboration_report
+msgid "Elaborations Report"
+msgstr "Informe de elaboraciones"
 
 #. module: sale_elaboration
 #: model_terms:ir.ui.view,arch_db:sale_elaboration.elaboration_view_search
@@ -194,20 +197,9 @@ msgstr "Incluir notas de elaboración en las operaciones de picking"
 #: model:ir.model.fields,field_description:sale_elaboration.field_product_template__is_elaboration
 #: model:ir.model.fields,field_description:sale_elaboration.field_sale_order_line__is_elaboration
 #: model:ir.model.fields,field_description:sale_elaboration.field_stock_move__is_elaboration
-#: model_terms:ir.ui.view,arch_db:sale_elaboration.view_sales_order_line_filter
+#: model_terms:ir.ui.view,arch_db:sale_elaboration.view_move_search
 msgid "Is Elaboration"
 msgstr "Es elaboración"
-
-#. module: sale_elaboration
-#: model_terms:ir.ui.view,arch_db:sale_elaboration.view_sales_order_line_filter
-msgid "Is Not Prepared"
-msgstr "No está preparado"
-
-#. module: sale_elaboration
-#: model:ir.model.fields,field_description:sale_elaboration.field_sale_order_line__is_prepared
-#: model_terms:ir.ui.view,arch_db:sale_elaboration.view_sales_order_line_filter
-msgid "Is Prepared"
-msgstr "Está preparado"
 
 #. module: sale_elaboration
 #: model:ir.model.fields,help:sale_elaboration.field_product_product__elaboration_profile_id
@@ -215,6 +207,8 @@ msgstr "Está preparado"
 msgid ""
 "Keep this field empty to use the default value from the product category."
 msgstr ""
+"Deje este campo vacío para usar el valor predeterminado de la categoría de "
+"producto."
 
 #. module: sale_elaboration
 #: model:ir.model.fields,field_description:sale_elaboration.field_product_elaboration__write_uid
@@ -240,6 +234,11 @@ msgid "Name must be unique!"
 msgstr "¡El nombre debe ser único!"
 
 #. module: sale_elaboration
+#: model:ir.model.fields,field_description:sale_elaboration.field_stock_move__order_date
+msgid "Order Date"
+msgstr "Fecha de pedido"
+
+#. module: sale_elaboration
 #: model:ir.model,name:sale_elaboration.model_product_template
 #: model:ir.model.fields,field_description:sale_elaboration.field_product_elaboration__product_id
 #: model_terms:ir.ui.view,arch_db:sale_elaboration.elaboration_view_search
@@ -249,7 +248,7 @@ msgstr "Producto"
 #. module: sale_elaboration
 #: model:ir.model,name:sale_elaboration.model_product_category
 msgid "Product Category"
-msgstr ""
+msgstr "Categoría de producto"
 
 #. module: sale_elaboration
 #: model:ir.model,name:sale_elaboration.model_product_elaboration_mixin
@@ -292,6 +291,11 @@ msgid "Routes"
 msgstr "Rutas preferidas"
 
 #. module: sale_elaboration
+#: model:ir.model.fields,field_description:sale_elaboration.field_stock_move__sale_id
+msgid "Sale"
+msgstr "Venta"
+
+#. module: sale_elaboration
 #: model:ir.actions.act_window,name:sale_elaboration.sale_elaboration_action
 #: model:ir.ui.menu,name:sale_elaboration.menu_sale_elaboration
 msgid "Sale Elaboration"
@@ -304,13 +308,6 @@ msgid "Sale Elaboration Profiles"
 msgstr "Perfiles de elaboraciones"
 
 #. module: sale_elaboration
-#: model:ir.actions.act_window,name:sale_elaboration.sale_elaboration_report_action
-#: model:ir.ui.menu,name:sale_elaboration.menu_sale_elaboration_report
-#: model:ir.ui.menu,name:sale_elaboration.menu_stock_sale_elaboration_report
-msgid "Sale Elaboration Report"
-msgstr "Informe de elaboraciones"
-
-#. module: sale_elaboration
 #: model:ir.model,name:sale_elaboration.model_sale_order
 msgid "Sales Order"
 msgstr "Pedido de venta"
@@ -319,6 +316,16 @@ msgstr "Pedido de venta"
 #: model:ir.model,name:sale_elaboration.model_sale_order_line
 msgid "Sales Order Line"
 msgstr "Líneas de pedido"
+
+#. module: sale_elaboration
+#: model:ir.model.fields,field_description:sale_elaboration.field_stock_move__salesman_id
+msgid "Salesman"
+msgstr "Vendedor"
+
+#. module: sale_elaboration
+#: model:ir.model.fields,field_description:sale_elaboration.field_stock_move__sequence_code
+msgid "Sequence Code"
+msgstr "Código de secuencia"
 
 #. module: sale_elaboration
 #: model:ir.model.fields,field_description:sale_elaboration.field_product_elaboration__code
@@ -341,11 +348,20 @@ msgstr "Regla de Inventario"
 msgid "Transfer"
 msgstr "Albarán"
 
-#. module: sale_elaboration
-#. odoo-python
-#: code:addons/sale_elaboration/models/sale_order.py:0
-msgid "Unsupported operator %s for searching on is_prepared"
-msgstr "Operador %s no soportado para buscar en is_prepared"
+#~ msgid "Dummy field to be able to find prepared lines"
+#~ msgstr "Campo ficticio para poder encontrar líneas preparadas"
+
+#~ msgid "Is Not Prepared"
+#~ msgstr "No está preparado"
+
+#~ msgid "Is Prepared"
+#~ msgstr "Está preparado"
+
+#~ msgid "Sale Elaboration Report"
+#~ msgstr "Informe de elaboraciones"
+
+#~ msgid "Unsupported operator %s for searching on is_prepared"
+#~ msgstr "Operador %s no soportado para buscar en is_prepared"
 
 #~ msgid "Last Modified on"
 #~ msgstr "Última modificación el"

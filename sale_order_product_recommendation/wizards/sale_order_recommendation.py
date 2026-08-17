@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 from odoo.osv import expression
+from odoo.tools import float_compare
 from odoo.tools.safe_eval import safe_eval
 
 _logger = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ class SaleOrderRecommendation(models.TransientModel):
 
     def _extended_recommendable_sale_order_lines_domain(self):
         """Extra domain to include or exclude SO lines"""
-        return safe_eval(self.env.user.company_id.sale_line_recommendation_domain)
+        return safe_eval(self.env.company.sale_line_recommendation_domain)
 
     def _recommendable_sale_order_lines_domain(self):
         """Domain to find recent SO lines."""
@@ -155,7 +156,9 @@ class SaleOrderRecommendation(models.TransientModel):
         existing_product_ids = set()
         # Always recommend all products already present in the linked SO except delivery
         # carrier products
-        for line in self.order_id.order_line.filtered(lambda ln: not ln._is_delivery()):
+        for line in self.order_id.order_line.filtered(
+            lambda ln: not (ln._is_delivery() or ln.display_type)
+        ):
             found_line = found_dict.get(
                 line.product_id,
                 False,
@@ -198,7 +201,7 @@ class SaleOrderRecommendation(models.TransientModel):
         to_remove = []
         sale_order_line_obj = self.env["sale.order.line"].sudo()
         new_line_vals = []
-        force_zero_units_included = self.env.user.company_id.force_zero_units_included
+        force_zero_units_included = self.env.company.force_zero_units_included
         for wiz_line in self.line_ids:
             if (
                 not wiz_line.sale_line_id
@@ -233,6 +236,7 @@ class SaleOrderRecommendationLine(models.TransientModel):
     partner_id = fields.Many2one(related="wizard_id.order_id.partner_id")
     product_id = fields.Many2one("product.product")
     product_name = fields.Char(related="product_id.name", readonly=True)
+    image_128 = fields.Image(related="product_id.image_128", readonly=True)
     product_categ_complete_name = fields.Char(
         string="Product category",
         related="product_id.categ_id.complete_name",
@@ -297,6 +301,23 @@ class SaleOrderRecommendationLine(models.TransientModel):
                 line.price_unit = line._get_last_sale_price_product()
 
     def _prepare_update_so_line_vals(self):
+        """Get values to update the sale order line if quantities has changed."""
+        self.ensure_one()
+        # Convert quantities to the same uom
+        wiz_qty = self.sale_uom_id._compute_quantity(
+            self.units_included, self.product_id.uom_id
+        )
+        so_qty = self.sale_line_id.product_uom._compute_quantity(
+            self.sale_line_id.product_uom_qty, self.product_id.uom_id
+        )
+        # Skip update if quantities are equal
+        if (
+            float_compare(
+                wiz_qty, so_qty, precision_rounding=self.product_id.uom_id.rounding
+            )
+            == 0
+        ):
+            return {}
         vals = {"product_uom_qty": self.units_included}
         if not self.product_uom_readonly:
             vals["product_uom"] = self.sale_uom_id.id

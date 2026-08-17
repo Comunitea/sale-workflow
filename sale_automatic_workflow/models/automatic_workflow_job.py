@@ -7,7 +7,6 @@ import logging
 from contextlib import contextmanager
 
 from odoo import api, fields, models
-from odoo.tools.safe_eval import safe_eval
 
 _logger = logging.getLogger(__name__)
 
@@ -135,7 +134,7 @@ class AutomaticWorkflowJob(models.Model):
             and "customer"
             or "supplier"
         )
-        return {
+        res = {
             "reconciled_invoice_ids": [(6, 0, invoice.ids)],
             "amount": invoice.amount_residual,
             "partner_id": invoice.partner_id.id,
@@ -143,6 +142,12 @@ class AutomaticWorkflowJob(models.Model):
             "date": fields.Date.context_today(self),
             "currency_id": invoice.currency_id.id,
         }
+        property_payment_journal_id = (
+            invoice.workflow_process_id.property_payment_journal_id
+        )
+        if property_payment_journal_id:
+            res["journal_id"] = property_payment_journal_id.id
+        return res
 
     @api.model
     def _register_payments(self, payment_filter):
@@ -155,13 +160,18 @@ class AutomaticWorkflowJob(models.Model):
         return
 
     def _register_payment_invoice(self, invoice):
+        self = self.with_company(invoice.company_id)
         payment = self.env["account.payment"].create(
             self._prepare_dict_account_payment(invoice)
         )
         payment.action_post()
 
         domain = [
-            ("account_type", "in", ("asset_receivable", "liability_payable")),
+            (
+                "account_type",
+                "in",
+                self.env["account.payment"]._get_valid_payment_account_types(),
+            ),
             ("reconciled", "=", False),
         ]
         payment_lines = payment.move_id.line_ids.filtered_domain(domain)
@@ -170,6 +180,7 @@ class AutomaticWorkflowJob(models.Model):
             (payment_lines + lines).filtered_domain(
                 [("account_id", "=", account.id), ("reconciled", "=", False)]
             ).reconcile()
+        lines.move_id.matched_payment_ids += payment
         return payment
 
     @api.model
@@ -186,27 +197,27 @@ class AutomaticWorkflowJob(models.Model):
             self.with_context(
                 send_order_confirmation_mail=sale_workflow.send_order_confirmation_mail
             )._validate_sale_orders(
-                safe_eval(sale_workflow.order_filter_id.domain) + workflow_domain
+                sale_workflow.order_filter_id._get_eval_domain() + workflow_domain
             )
         self._handle_pickings(sale_workflow)
         if sale_workflow.create_invoice:
             self._create_invoices(
-                safe_eval(sale_workflow.create_invoice_filter_id.domain)
+                sale_workflow.create_invoice_filter_id._get_eval_domain()
                 + workflow_domain
             )
         if sale_workflow.validate_invoice:
             self._validate_invoices(
-                safe_eval(sale_workflow.validate_invoice_filter_id.domain)
+                sale_workflow.validate_invoice_filter_id._get_eval_domain()
                 + workflow_domain
             )
         if sale_workflow.sale_done:
             self._sale_done(
-                safe_eval(sale_workflow.sale_done_filter_id.domain) + workflow_domain
+                sale_workflow.sale_done_filter_id._get_eval_domain() + workflow_domain
             )
 
         if sale_workflow.register_payment:
             self._register_payments(
-                safe_eval(sale_workflow.payment_filter_id.domain) + workflow_domain
+                sale_workflow.payment_filter_id._get_eval_domain() + workflow_domain
             )
 
     @api.model

@@ -1,12 +1,14 @@
 # Copyright 2017 Tecnativa - Jairo Llopis
 # License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
+from freezegun import freeze_time
 
-from odoo.tests import TransactionCase, new_test_user
+from odoo.fields import Command
+from odoo.tests import new_test_user
 
-from odoo.addons.base.tests.common import DISABLED_MAIL_CONTEXT
+from odoo.addons.base.tests.common import BaseCommon
 
 
-class RecommendationCase(TransactionCase):
+class RecommendationCase(BaseCommon):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
@@ -15,13 +17,11 @@ class RecommendationCase(TransactionCase):
             cls.env,
             "test_recommendation",
             "sales_team.group_sale_salesman",
-            DISABLED_MAIL_CONTEXT,
         )
         cls.user_invoice = new_test_user(
             cls.env,
             "test_recommendation_invoice",
             "account.group_account_invoice",
-            DISABLED_MAIL_CONTEXT,
         )
         cls.env = cls.user_salesman.env
         cls.pricelist = cls.env["product.pricelist"].create(
@@ -48,6 +48,7 @@ class RecommendationCase(TransactionCase):
                 "type": "service",
                 "list_price": 25.00,
                 "categ_id": cls.cat_b.id,
+                "default_code": False,
             }
         )
         cls.prod_2 = cls.product_obj.create(
@@ -56,6 +57,7 @@ class RecommendationCase(TransactionCase):
                 "type": "service",
                 "list_price": 50.00,
                 "categ_id": cls.cat_b.id,
+                "default_code": False,
             }
         )
         cls.prod_3 = cls.product_obj.create(
@@ -73,55 +75,48 @@ class RecommendationCase(TransactionCase):
         cls.order1 = cls.env["sale.order"].create(
             {
                 "partner_id": cls.partner.id,
-                "state": "sale",
-                "locked": "True",
                 "date_order": "2021-05-05",
                 "order_line": [
-                    (
-                        0,
-                        0,
+                    Command.create(
                         {
                             "product_id": cls.prod_1.id,
                             "name": cls.prod_1.name,
                             "product_uom_qty": 25,
                             "qty_delivered_method": "manual",
                             "qty_delivered": 25,
-                            "price_unit": 24.50,
                         },
                     ),
-                    (
-                        0,
-                        0,
+                    Command.create(
                         {
                             "product_id": cls.prod_2.id,
                             "name": cls.prod_2.name,
                             "product_uom_qty": 50,
                             "qty_delivered_method": "manual",
                             "qty_delivered": 50,
-                            "price_unit": 49.50,
                         },
                     ),
-                    (
-                        0,
-                        0,
+                    Command.create(
                         {
                             "product_id": cls.prod_3.id,
                             "name": cls.prod_3.name,
                             "product_uom_qty": 100,
                             "qty_delivered_method": "manual",
                             "qty_delivered": 100,
-                            "price_unit": 74.50,
                         },
                     ),
                 ],
             }
         )
+        cls.order1.order_line[0].write({"price_unit": 24.50})
+        cls.order1.order_line[1].write({"price_unit": 49.50})
+        cls.order1.order_line[2].write({"price_unit": 74.50})
+        cls.order1.write({"locked": True})
+        with freeze_time("2021-05-05"):
+            cls.order1.action_confirm()
         cls.order2 = cls.env["sale.order"].create(
             {
                 "partner_id": cls.partner.id,
                 "partner_shipping_id": cls.partner_delivery.id,
-                "state": "sale",
-                "locked": "True",
                 "date_order": "2021-05-03",
                 "order_line": [
                     (
@@ -133,12 +128,15 @@ class RecommendationCase(TransactionCase):
                             "product_uom_qty": 50,
                             "qty_delivered_method": "manual",
                             "qty_delivered": 50,
-                            "price_unit": 89.00,
                         },
                     ),
                 ],
             }
         )
+        cls.order2.order_line.write({"price_unit": 89.00})
+        cls.order2.write({"locked": True})
+        with freeze_time("2021-05-03"):
+            cls.order2.action_confirm()
         # Create a new sale order for the same customer
         cls.new_so = cls.env["sale.order"].create(
             {
